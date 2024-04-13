@@ -4,37 +4,64 @@ const bcrypt = require('bcrypt');
 const multer = require('multer');
 const Aadhaar = require('../models/Aadhaar'); // Importing Aadhaar model
 const User = require('../models/user'); // Import User model
-const upload = multer();
+const session = require('express-session');
+const path = require('path');
+
+path.join(__dirname, 'views'); // Set the views directory path to the views folder in the root of the project
+path.join(__dirname,'uploads'); // Set the uploads directory path to the uploads folder in the root of the project
+
+// Set up multer for file uploads
+const storage = multer.diskStorage({
+	destination: (req, file, cb) => {
+		cb(null, "uploads/") // Saves the files to the uploads directory in the root of the project
+	},
+	filename: (req, file, cb) => {
+		cb(null, Date.now() + "-" + file.originalname)
+	},
+})
+const upload = multer({ storage: storage })
+
+//accessing multer storage (eg : photo, signature)
+// const storage = multer.diskStorage({
+//     destination: function (req, file, cb) {
+//         cb(null, 'uploads/')
+//     },
+//     filename: function (req, file, cb) {
+//         cb(null, file.originalname + '-' + Date.now() + '.jpg')
+//     }
+// });
 
 // Hashing salt rounds
 const saltRounds = 10;
 
-// Function to generate a unique 7-digit ID
+// Function to generate a unique 9-digit ID
 async function generateUniqueID() {
-    let uniqueID;
-    let exists;
-    do {
-        uniqueID = Math.floor(Math.random() * 9000000) + 1000000;
-        exists = await Aadhaar.exists({ unique_id: uniqueID });
-    } while (exists);
-    return uniqueID;
+    let uniqueID = Math.floor(100000000 + Math.random() * 900000000); //? first generate a  9-dig no. and then add 1000... to it to ensure it is a 9-dig no. because Math.random() generates a number between 0 and 1
+	let aadhaar = await Aadhaar.findOne({ unique_id: uniqueID });
+	if (aadhaar) {
+		uniqueID = await generateUniqueID();
+	}
+	return uniqueID;
 }
+
+
 
 // Aadhaar application form route
 router.post('/apply-for-aadhaar', upload.fields([{ name: 'photo', maxCount: 1 }, { name: 'signature', maxCount: 1 }]), async (req, res) => {
     try {
         const {
             firstName, lastName, gender, dob, address,
-            email, contact, fatherName, motherName,
-            password
+            email, contactDetails, fathersName, mothersName,password
         } = req.body;
 
         // Get photo and signature from request files
-        const photo = req.files['photo'] ? req.files['photo'][0].buffer : null;
-        const signature = req.files['signature'] ? req.files['signature'][0].buffer : null;
+		const photo = req.files['photo'][0].path;
+		const signature = req.files['signature'][0].path;
+		//console.log(req.files);
 
-        // Generate a unique 7-digit ID
+        // Generate a unique 9-digit ID
         const uniqueID = await generateUniqueID();
+		//console.log(uniqueID);
 
         // Hash the password
         const hashedPassword = await bcrypt.hash(password, saltRounds);
@@ -48,15 +75,16 @@ router.post('/apply-for-aadhaar', upload.fields([{ name: 'photo', maxCount: 1 },
             dob,
             address,
             email,
-            contact,
-            fatherName,
-            motherName,
-            photo,
-            signature,
+            contactDetails,
+            fathersName,
+            mothersName,
+            photoURL: photo,
+            signatureURL: signature,
             password: hashedPassword,
         });
+		console.log(aadhaarApp);
 
-        // Save the Aadhaar application to the database
+        // // Save the Aadhaar application to the database
         await aadhaarApp.save();
 
         res.send({ "Success": "Aadhaar application submitted successfully!" });
@@ -110,7 +138,7 @@ router.post('/', function(req, res, next) {
 						});
 
 					}).sort({_id: -1}).limit(1);
-					res.send({"Success":"You are regestered,You can login now."});
+					res.send({"Success":"You are registered,You can login now."});
 				}else{
 					res.send({"Success":"Email is already used."});
 				}
@@ -128,22 +156,23 @@ router.get('/login', function (req, res, next) {
 
 router.post('/login', function (req, res, next) {
 	//console.log(req.body);
-	User.findOne({email:req.body.email},function(err,data){
-		if(data){
-			
-			if(data.password==req.body.password){
-				//console.log("Done Login");
-				req.session.userId = data.unique_id;
-				//console.log(req.session.userId);
-				res.send({"Success":"Success!"});
-				
-			}else{
-				res.send({"Success":"Wrong password!"});
-			}
-		}else{
-			res.send({"Success":"This Email Is not regestered!"});
+	const email = req.body.email;
+	const password = req.body.password;
+	let user = User.findOne({email: email});
+	if(!user){
+		res.send({"Success":"Email is not registered!"});
+	}
+	else{
+		if(bcrypt.compare(password, user.password)){
+			req.session.userId = user.unique_id;
+			console.log(req.session.userId);
+			res.send({"Success":"Success!"});
 		}
-	});
+		else{
+			res.send({"Success":"Password is incorrect!"});
+		}
+	}
+
 });
 
 router.get('/profile', function (req, res, next) {
