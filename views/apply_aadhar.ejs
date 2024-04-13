@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Apply for Aadhaar</title>
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+    />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="./css/main.css" />
+    <style>
+      /* Add margin-bottom to the heading */
+      h2 {
+        margin-bottom: 30px;
+      }
+
+      /* Styling for invalid feedback notes */
+      .invalid-feedback {
+        color: red;
+        display: none;
+      }
+    </style>
+    <script>
+      // Form validation function
+      function validateForm() {
+        var valid = true;
+
+        // First name validation
+        var firstName = document.getElementById("firstName");
+        var firstNameValue = firstName.value.trim();
+        if (!/^[A-Za-z\s]+$/.test(firstNameValue)) {
+          valid = false;
+          firstName.value = "";
+          document.getElementById("firstNameInvalid").style.display = "block";
+        } else {
+          document.getElementById("firstNameInvalid").style.display = "none";
+        }
+
+        // Last name validation
+        var lastName = document.getElementById("lastName");
+        var lastNameValue = lastName.value.trim();
+        if (!/^[A-Za-z\s]+$/.test(lastNameValue)) {
+          valid = false;
+          lastName.value = "";
+          document.getElementById("lastNameInvalid").style.display = "block";
+        } else {
+          document.getElementById("lastNameInvalid").style.display = "none";
+        }
+
+        // Gender validation
+        var gender = document.querySelector('input[name="gender"]:checked');
+        if (!gender) {
+          valid = false;
+          document.getElementById("genderInvalid").style.display = "block";
+        } else {
+          document.getElementById("genderInvalid").style.display = "none";
+        }
+
+        // Date of Birth validation
+        var dob = document.getElementById("dob");
+        var dobValue = dob.value;
+        var currentDate = new Date();
+        var dobDate = new Date(dobValue);
+        if (!dobValue || dobDate >= currentDate) {
+          valid = false;
+          dob.value = "";
+          document.getElementById("dobInvalid").style.display = "block";
+        } else {
+          document.getElementById("dobInvalid").style.display = "none";
+        }
+
+        // Address validation
+        var address = document.getElementById("address");
+        var addressValue = address.value.trim();
+        if (!/^[A-Za-z\s0-9]+$/.test(addressValue)) {
+          valid = false;
+          address.value = "";
+          document.getElementById("addressInvalid").style.display = "block";
+        } else {
+          document.getElementById("addressInvalid").style.display = "none";
+        }
+
+        // Email validation
+        var email = document.getElementById("email");
+        var emailValue = email.value.trim();
+        var emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailPattern.test(emailValue)) {
+          valid = false;
+          email.value = "";
+          document.getElementById("emailInvalid").style.display = "block";
+        } else {
+          document.getElementById("emailInvalid").style.display = "none";
+        }
+
+        // Contact details validation
+        var contactDetails = document.getElementById("contactDetails");
+        var contactValue = contactDetails.value.trim();
+        if (!/^\d{10}$/.test(contactValue)) {
+          valid = false;
+          contactDetails.value = "";
+          document.getElementById("contactInvalid").style.display = "block";
+        } else {
+          document.getElementById("contactInvalid").style.display = "none";
+        }
+
+        // Mother's name validation
+        var mothersName = document.getElementById("mothersName");
+        var mothersNameValue = mothersName.value.trim();
+        if (!/^[A-Za-z\s]+$/.test(mothersNameValue)) {
+          valid = false;
+          mothersName.value = "";
+          document.getElementById("mothersNameInvalid").style.display = "block";
+        } else {
+          document.getElementById("mothersNameInvalid").style.display = "none";
+        }
+
+        // Father's name validation
+        var fathersName = document.getElementById("fathersName");
+        var fathersNameValue = fathersName.value.trim();
+        if (!/^[A-Za-z\s]+$/.test(fathersNameValue)) {
+          valid = false;
+          fathersName.value = "";
+          document.getElementById("fathersNameInvalid").style.display = "block";
+        } else {
+          document.getElementById("fathersNameInvalid").style.display = "none";
+        }
+
+        // Photograph validation
+        var photograph = document.getElementById("photograph");
+        var photographFile = photograph.files[0];
+        if (!photographFile || photographFile.size > 2 * 1024 * 1024) {
+          valid = false;
+          photograph.value = "";
+          document.getElementById("photographInvalid").style.display = "block";
+        } else {
+          document.getElementById("photographInvalid").style.display = "none";
+        }
+
+        // Signature validation
+        var signature = document.getElementById("signature");
+        var signatureFile = signature.files[0];
+        if (!signatureFile || signatureFile.size > 2 * 1024 * 1024) {
+          valid = false;
+          signature.value = "";
+          document.getElementById("signatureInvalid").style.display = "block";
+        } else {
+          document.getElementById("signatureInvalid").style.display = "none";
+        }
+
+        // Language preference validation
+        var languagePreference = document.getElementById("languagePreference");
+        var languagePreferenceValue = languagePreference.value.trim();
+        if (!/^[A-Za-z\s]+$/.test(languagePreferenceValue)) {
+          valid = false;
+          languagePreference.value = "";
+          document.getElementById("languagePreferenceInvalid").style.display =
+            "block";
+        } else {
+          document.getElementById("languagePreferenceInvalid").style.display =
+            "none";
+        }
+
+        // Consent validation
+        var consent = document.getElementById("consent");
+        if (!consent.checked) {
+          valid = false;
+          document.getElementById("consentInvalid").style.display = "block";
+        } else {
+          document.getElementById("consentInvalid").style.display = "none";
+        }
+
+        // Return true if the form is valid, otherwise false
+        return valid;
+      }
+
+      // Add event listener to form submit
+      document.addEventListener("DOMContentLoaded", function () {
+        document
+          .getElementById("aadharForm")
+          .addEventListener("submit", function (event) {
+            if (!validateForm()) {
+              // Prevent form submission if form is invalid
+              event.preventDefault();
+            }
+          });
+      });
+    </script>
+  </head>
+
+  <body>
+    <div class="col-md-4 col-md-offset-4">
+      <div>
+        <h2>Apply for Aadhaar</h2>
+      </div>
+      <form
+        id="aadharForm"
+        method="post"
+        action="/apply-for-aadhaar"
+        novalidate
+      >
+        <!-- First Name -->
+        <div class="form-group row">
+          <label for="firstName" class="col-sm-4 control-label"
+            >First Name:</label
+          >
+          <div class="col-sm-8">
+            <input
+              type="text"
+              name="firstName"
+              id="firstName"
+              placeholder="First Name"
+              required
+              class="form-control"
+            />
+            <span id="firstNameInvalid" class="invalid-feedback"
+              >Invalid format</span
+            >
+          </div>
+        </div>
+
+        <!-- Last Name -->
+        <div class="form-group row">
+          <label for="lastName" class="col-sm-4 control-label"
+            >Last Name:</label
+          >
+          <div class="col-sm-8">
+            <input
+              type="text"
+              name="lastName"
+              id="lastName"
+              placeholder="Last Name"
+              required
+              class="form-control"
+            />
+            <span id="lastNameInvalid" class="invalid-feedback"
+              >Invalid format</span
+            >
+          </div>
+        </div>
+
+        <!-- Gender -->
+        <div class="form-group row">
+          <label for="gender" class="col-sm-4 control-label">Gender:</label>
+          <div class="col-sm-8">
+            <input type="radio" name="gender" value="Male" id="male" />
+            <label for="male">Male</label>
+            <input type="radio" name="gender" value="Female" id="female" />
+            <label for="female">Female</label>
+            <input type="radio" name="gender" value="Other" id="other" />
+            <label for="other">Other</label>
+            <span id="genderInvalid" class="invalid-feedback"
+              >Please select a gender</span
+            >
+          </div>
+        </div>
+
+        <!-- Date of Birth -->
+        <div class="form-group row">
+          <label for="dob" class="col-sm-4 control-label">Date of Birth:</label>
+          <div class="col-sm-8">
+            <input
+              type="date"
+              name="dob"
+              id="dob"
+              class="form-control"
+              required
+            />
+            <span id="dobInvalid" class="invalid-feedback">Invalid date</span>
+          </div>
+        </div>
+
+        <!-- Address -->
+        <div class="form-group row">
+          <label for="address" class="col-sm-4 control-label">Address:</label>
+          <div class="col-sm-8">
+            <input
+              type="text"
+              name="address"
+              id="address"
+              placeholder="Address"
+              required
+              class="form-control"
+            />
+            <span id="addressInvalid" class="invalid-feedback"
+              >Invalid address format</span
+            >
+          </div>
+        </div>
+
+        <!-- Email -->
+        <div class="form-group row">
+          <label for="email" class="col-sm-4 control-label">Email:</label>
+          <div class="col-sm-8">
+            <input
+              type="email"
+              name="email"
+              id="email"
+              placeholder="Email"
+              required
+              class="form-control"
+            />
+            <span id="emailInvalid" class="invalid-feedback"
+              >Invalid email format</span
+            >
+          </div>
+        </div>
+
+        <!-- Contact Details -->
+        <div class="form-group row">
+          <label for="contactDetails" class="col-sm-4 control-label"
+            >Contact Details:</label
+          >
+          <div class="col-sm-8">
+            <input
+              type="text"
+              name="contactDetails"
+              id="contactDetails"
+              placeholder="Contact Number"
+              required
+              class="form-control"
+            />
+            <span id="contactInvalid" class="invalid-feedback"
+              >Invalid contact number format</span
+            >
+          </div>
+        </div>
+
+        <!-- Mother's Name -->
+        <div class="form-group row">
+          <label for="mothersName" class="col-sm-4 control-label"
+            >Mother's Name:</label
+          >
+          <div class="col-sm-8">
+            <input
+              type="text"
+              name="mothersName"
+              id="mothersName"
+              placeholder="Mother's Name"
+              required
+              class="form-control"
+            />
+            <span id="mothersNameInvalid" class="invalid-feedback"
+              >Invalid format</span
+            >
+          </div>
+        </div>
+
+        <!-- Father's Name -->
+        <div class="form-group row">
+          <label for="fathersName" class="col-sm-4 control-label"
+            >Father's Name:</label
+          >
+          <div class="col-sm-8">
+            <input
+              type="text"
+              name="fathersName"
+              id="fathersName"
+              placeholder="Father's Name"
+              required
+              class="form-control"
+            />
+            <span id="fathersNameInvalid" class="invalid-feedback"
+              >Invalid format</span
+            >
+          </div>
+        </div>
+
+        <!-- Photograph -->
+        <div class="form-group row">
+          <label for="photograph" class="col-sm-4 control-label"
+            >Photograph:</label
+          >
+          <div class="col-sm-8">
+            <input
+              type="file"
+              name="photograph"
+              id="photograph"
+              accept="image/*"
+              required
+              class="form-control"
+            />
+            <span id="photographInvalid" class="invalid-feedback"
+              >File size must be less than 2MB</span
+            >
+          </div>
+        </div>
+
+        <!-- Signature -->
+        <div class="form-group row">
+          <label for="signature" class="col-sm-4 control-label"
+            >Signature:</label
+          >
+          <div class="col-sm-8">
+            <input
+              type="file"
+              name="signature"
+              id="signature"
+              accept="image/*"
+              required
+              class="form-control"
+            />
+            <span id="signatureInvalid" class="invalid-feedback"
+              >File size must be less than 2MB</span
+            >
+          </div>
+        </div>
+
+        <!-- Language Preference -->
+        <div class="form-group row">
+          <label for="languagePreference" class="col-sm-4 control-label"
+            >Language Preference:</label
+          >
+          <div class="col-sm-8">
+            <input
+              type="text"
+              name="languagePreference"
+              id="languagePreference"
+              placeholder="Language Preference"
+              required
+              class="form-control"
+            />
+            <span id="languagePreferenceInvalid" class="invalid-feedback"
+              >Invalid format</span
+            >
+          </div>
+        </div>
+
+        <!-- Consent -->
+        <div class="form-group row">
+          <div class="col-sm-12">
+            <div class="checkbox">
+              <label>
+                <input type="checkbox" name="consent" id="consent" />
+                I agree to the terms and conditions
+              </label>
+            </div>
+            <span id="consentInvalid" class="invalid-feedback"
+              >You must agree to the terms and conditions</span
+            >
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="form-group row">
+          <div class="col-sm-12">
+            <button type="submit" class="btn btn-primary btn-block">
+              Submit
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </body>
+</html>

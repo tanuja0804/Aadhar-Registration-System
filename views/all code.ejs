@@ -1,0 +1,1000 @@
+user.js 
+var mongoose = require('mongoose');
+var Schema = mongoose.Schema;
+
+userSchema = new Schema( {
+	
+	unique_id: Number,
+	email: String,
+	username: String,
+	password: String,
+	passwordConf: String
+}),
+User = mongoose.model('User', userSchema);
+
+module.exports = User;
+
+index.js
+var express = require('express');
+var router = express.Router();
+var User = require('../models/user');
+
+router.get('/', function (req, res, next) {
+	return res.render('index.ejs');
+});
+
+
+router.post('/', function(req, res, next) {
+	console.log(req.body);
+	var personInfo = req.body;
+
+
+	if(!personInfo.email || !personInfo.username || !personInfo.password || !personInfo.passwordConf){
+		res.send();
+	} else {
+		if (personInfo.password == personInfo.passwordConf) {
+
+			User.findOne({email:personInfo.email},function(err,data){
+				if(!data){
+					var c;
+					User.findOne({},function(err,data){
+
+						if (data) {
+							console.log("if");
+							c = data.unique_id + 1;
+						}else{
+							c=1;
+						}
+
+						var newPerson = new User({
+							unique_id:c,
+							email:personInfo.email,
+							username: personInfo.username,
+							password: personInfo.password,
+							passwordConf: personInfo.passwordConf
+						});
+
+						newPerson.save(function(err, Person){
+							if(err)
+								console.log(err);
+							else
+								console.log('Success');
+						});
+
+					}).sort({_id: -1}).limit(1);
+					res.send({"Success":"You are regestered,You can login now."});
+				}else{
+					res.send({"Success":"Email is already used."});
+				}
+
+			});
+		}else{
+			res.send({"Success":"password is not matched"});
+		}
+	}
+});
+
+router.get('/login', function (req, res, next) {
+	return res.render('login.ejs');
+});
+
+router.post('/login', function (req, res, next) {
+	//console.log(req.body);
+	User.findOne({email:req.body.email},function(err,data){
+		if(data){
+			
+			if(data.password==req.body.password){
+				//console.log("Done Login");
+				req.session.userId = data.unique_id;
+				//console.log(req.session.userId);
+				res.send({"Success":"Success!"});
+				
+			}else{
+				res.send({"Success":"Wrong password!"});
+			}
+		}else{
+			res.send({"Success":"This Email Is not regestered!"});
+		}
+	});
+});
+
+router.get('/profile', function (req, res, next) {
+    console.log("profile");
+    User.findOne({unique_id:req.session.userId}, function(err, data){
+        console.log("data");
+        console.log(data);
+        if (!data) {
+            res.redirect('/');
+        } else {
+            // Render the new EJS template file named 'aadhar.ejs'
+            return res.render('aadhar.ejs', {"name": data.username, "email": data.email});
+        }
+    });
+});
+
+router.get('/logout', function (req, res, next) {
+	console.log("logout")
+	if (req.session) {
+    // delete session object
+    req.session.destroy(function (err) {
+    	if (err) {
+    		return next(err);
+    	} else {
+    		return res.redirect('/');
+    	}
+    });
+}
+});
+
+router.get('/forgetpass', function (req, res, next) {
+	res.render("forget.ejs");
+});
+
+router.post('/forgetpass', function (req, res, next) {
+	//console.log('req.body');
+	//console.log(req.body);
+	User.findOne({email:req.body.email},function(err,data){
+		console.log(data);
+		if(!data){
+			res.send({"Success":"This Email Is not regestered!"});
+		}else{
+			// res.send({"Success":"Success!"});
+			if (req.body.password==req.body.passwordConf) {
+			data.password=req.body.password;
+			data.passwordConf=req.body.passwordConf;
+
+			data.save(function(err, Person){
+				if(err)
+					console.log(err);
+				else
+					console.log('Success');
+					res.send({"Success":"Password changed!"});
+			});
+		}else{
+			res.send({"Success":"Password does not matched! Both Password should be same."});
+		}
+		}
+	});
+	
+});
+
+// Route to render the Aadhar application form
+router.get('/apply-for-aadhar', function (req, res, next) {
+    res.render('apply_aadhar.ejs');
+});
+
+// Route to handle form submission
+router.post('/apply-for-aadhar', function (req, res, next) {
+    // Process the form submission here
+    // Extract data from req.body
+    const formData = req.body;
+    
+    // Validate and save the form data to the database as required
+    
+    // Send a success response to the user
+    res.send({"Success": "Aadhar application submitted successfully!"});
+});
+
+module.exports = router;
+
+apply_aadhar.ejs
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Apply for Aadhaar</title>
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+    />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="./css/main.css" />
+    <style>
+      /* Add margin-bottom to the heading */
+      h2 {
+        margin-bottom: 30px; /* Increase the margin-bottom to create more space */
+      }
+
+      /* Add styling for invalid format notes */
+      .invalid-feedback {
+        color: red;
+        display: none;
+      }
+    </style>
+    <script>
+      // Form validation function
+      function validateForm() {
+        var valid = true;
+
+        // First name validation
+        var firstName = document.getElementById("firstName");
+        var firstNameValue = firstName.value.trim();
+        if (!/^[A-Za-z\s]+$/.test(firstNameValue)) {
+          valid = false;
+          firstName.value = "";
+          document.getElementById("firstNameInvalid").style.display = "block";
+        } else {
+          document.getElementById("firstNameInvalid").style.display = "none";
+        }
+
+        // Last name validation
+        var lastName = document.getElementById("lastName");
+        var lastNameValue = lastName.value.trim();
+        if (!/^[A-Za-z\s]+$/.test(lastNameValue)) {
+          valid = false;
+          lastName.value = "";
+          document.getElementById("lastNameInvalid").style.display = "block";
+        } else {
+          document.getElementById("lastNameInvalid").style.display = "none";
+        }
+
+        // Gender validation
+        var gender = document.querySelector('input[name="gender"]:checked');
+        if (!gender) {
+          valid = false;
+          document.getElementById("genderInvalid").style.display = "block";
+        } else {
+          document.getElementById("genderInvalid").style.display = "none";
+        }
+
+        // Date of Birth validation
+        var dob = document.getElementById("dob");
+        var dobValue = dob.value;
+        var currentDate = new Date();
+        var dobDate = new Date(dobValue);
+        if (!dobValue || dobDate >= currentDate) {
+          valid = false;
+          dob.value = "";
+          document.getElementById("dobInvalid").style.display = "block";
+        } else {
+          document.getElementById("dobInvalid").style.display = "none";
+        }
+
+        // Address validation
+        var address = document.getElementById("address");
+        var addressValue = address.value.trim();
+        if (!/^[A-Za-z\s0-9]+$/.test(addressValue)) {
+          valid = false;
+          address.value = "";
+          document.getElementById("addressInvalid").style.display = "block";
+        } else {
+          document.getElementById("addressInvalid").style.display = "none";
+        }
+
+        // Email validation
+        var email = document.getElementById("email");
+        var emailValue = email.value.trim();
+        var emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailPattern.test(emailValue)) {
+          valid = false;
+          email.value = "";
+          document.getElementById("emailInvalid").style.display = "block";
+        } else {
+          document.getElementById("emailInvalid").style.display = "none";
+        }
+
+        // Contact details validation
+        var contactDetails = document.getElementById("contactDetails");
+        var contactValue = contactDetails.value.trim();
+        if (!/^\d{10}$/.test(contactValue)) {
+          valid = false;
+          contactDetails.value = "";
+          document.getElementById("contactInvalid").style.display = "block";
+        } else {
+          document.getElementById("contactInvalid").style.display = "none";
+        }
+
+        // Mother's name validation
+        var mothersName = document.getElementById("mothersName");
+        var mothersNameValue = mothersName.value.trim();
+        if (!/^[A-Za-z\s]+$/.test(mothersNameValue)) {
+          valid = false;
+          mothersName.value = "";
+          document.getElementById("mothersNameInvalid").style.display = "block";
+        } else {
+          document.getElementById("mothersNameInvalid").style.display = "none";
+        }
+
+        // Father's name validation
+        var fathersName = document.getElementById("fathersName");
+        var fathersNameValue = fathersName.value.trim();
+        if (!/^[A-Za-z\s]+$/.test(fathersNameValue)) {
+          valid = false;
+          fathersName.value = "";
+          document.getElementById("fathersNameInvalid").style.display = "block";
+        } else {
+          document.getElementById("fathersNameInvalid").style.display = "none";
+        }
+
+        // Photograph validation
+        var photograph = document.getElementById("photograph");
+        var photographFile = photograph.files[0];
+        if (!photographFile || photographFile.size <= 2 * 1024 * 1024) {
+          valid = false;
+          photograph.value = "";
+          document.getElementById("photographInvalid").style.display = "block";
+        } else {
+          document.getElementById("photographInvalid").style.display = "none";
+        }
+
+        // Signature validation
+        var signature = document.getElementById("signature");
+        var signatureFile = signature.files[0];
+        if (!signatureFile || signatureFile.size <= 2 * 1024 * 1024) {
+          valid = false;
+          signature.value = "";
+          document.getElementById("signatureInvalid").style.display = "block";
+        } else {
+          document.getElementById("signatureInvalid").style.display = "none";
+        }
+
+        // Language preference validation
+        var languagePreference = document.getElementById("languagePreference");
+        var languagePreferenceValue = languagePreference.value.trim();
+        if (!/^[A-Za-z\s]+$/.test(languagePreferenceValue)) {
+          valid = false;
+          languagePreference.value = "";
+          document.getElementById("languagePreferenceInvalid").style.display =
+            "block";
+        } else {
+          document.getElementById("languagePreferenceInvalid").style.display =
+            "none";
+        }
+
+        // Consent validation
+        var consent = document.getElementById("consent");
+        if (!consent.checked) {
+          valid = false;
+          document.getElementById("consentInvalid").style.display = "block";
+        } else {
+          document.getElementById("consentInvalid").style.display = "none";
+        }
+
+        // Return true if the form is valid, otherwise false
+        return valid;
+      }
+
+      // Add event listener to form submit
+      document.addEventListener("DOMContentLoaded", function () {
+        document
+          .getElementById("aadharForm")
+          .addEventListener("submit", function (event) {
+            if (!validateForm()) {
+              // Prevent form submission if form is invalid
+              event.preventDefault();
+            }
+          });
+      });
+    </script>
+  </head>
+
+  <body>
+    <div class="col-md-4 col-md-offset-4">
+      <div>
+        <h2>Apply for Aadhaar</h2>
+      </div>
+      <form id="aadharForm" method="post" action="/apply-for-aadhaar">
+        <!-- First Name -->
+        <div class="form-group row">
+          <label for="firstName" class="col-sm-4 control-label"
+            >First Name:</label
+          >
+          <div class="col-sm-8">
+            <input
+              type="text"
+              name="firstName"
+              id="firstName"
+              placeholder="First Name"
+              required
+              class="form-control"
+            />
+            <span id="firstNameInvalid" class="invalid-feedback"
+              >Invalid format</span
+            >
+          </div>
+        </div>
+
+        <!-- Last Name -->
+        <div class="form-group row">
+          <label for="lastName" class="col-sm-4 control-label"
+            >Last Name:</label
+          >
+          <div class="col-sm-8">
+            <input
+              type="text"
+              name="lastName"
+              id="lastName"
+              placeholder="Last Name"
+              required
+              class="form-control"
+            />
+            <span id="lastNameInvalid" class="invalid-feedback"
+              >Invalid format</span
+            >
+          </div>
+        </div>
+
+        <!-- Gender -->
+        <div class="form-group row">
+          <label for="gender" class="col-sm-4 control-label">Gender:</label>
+          <div class="col-sm-8">
+            <div class="radio-inline">
+              <label>
+                <input type="radio" name="gender" value="male" required /> Male
+              </label>
+            </div>
+            <div class="radio-inline">
+              <label>
+                <input type="radio" name="gender" value="female" required />
+                Female
+              </label>
+            </div>
+            <div class="radio-inline">
+              <label>
+                <input
+                  type="radio"
+                  name="gender"
+                  value="transgender"
+                  required
+                />
+                Transgender
+              </label>
+            </div>
+            <span id="genderInvalid" class="invalid-feedback"
+              >Must select one</span
+            >
+          </div>
+        </div>
+
+        <!-- Date of Birth -->
+        <div class="form-group row">
+          <label for="dob" class="col-sm-4 control-label">Date of Birth:</label>
+          <div class="col-sm-8">
+            <input
+              type="date"
+              name="dob"
+              id="dob"
+              placeholder="Date of Birth"
+              required
+              class="form-control"
+            />
+            <span id="dobInvalid" class="invalid-feedback"
+              >Date must be valid and before today</span
+            >
+          </div>
+        </div>
+
+        <!-- Address -->
+        <div class="form-group row">
+          <label for="address" class="col-sm-4 control-label">Address:</label>
+          <div class="col-sm-8">
+            <textarea
+              name="address"
+              id="address"
+              placeholder="Address"
+              required
+              class="form-control"
+            ></textarea>
+            <span id="addressInvalid" class="invalid-feedback"
+              >Invalid format</span
+            >
+          </div>
+        </div>
+
+        <!-- Email -->
+        <div class="form-group row">
+          <label for="email" class="col-sm-4 control-label">Email:</label>
+          <div class="col-sm-8">
+            <input
+              type="email"
+              name="email"
+              id="email"
+              placeholder="Email"
+              required
+              class="form-control"
+            />
+            <span id="emailInvalid" class="invalid-feedback"
+              >Invalid format</span
+            >
+          </div>
+        </div>
+
+        <!-- Contact Details -->
+        <div class="form-group row">
+          <label for="contactDetails" class="col-sm-4 control-label"
+            >Contact Details:</label
+          >
+          <div class="col-sm-8">
+            <input
+              type="text"
+              name="contactDetails"
+              id="contactDetails"
+              placeholder="Contact Details"
+              required
+              class="form-control"
+            />
+            <span id="contactInvalid" class="invalid-feedback"
+              >Must be 10 digits</span
+            >
+          </div>
+        </div>
+
+        <!-- Mother's Name -->
+        <div class="form-group row">
+          <label for="mothersName" class="col-sm-4 control-label"
+            >Mother's Name:</label
+          >
+          <div class="col-sm-8">
+            <input
+              type="text"
+              name="mothersName"
+              id="mothersName"
+              placeholder="Mother's Name"
+              required
+              class="form-control"
+            />
+            <span id="mothersNameInvalid" class="invalid-feedback"
+              >Invalid format</span
+            >
+          </div>
+        </div>
+
+        <!-- Father's Name -->
+        <div class="form-group row">
+          <label for="fathersName" class="col-sm-4 control-label"
+            >Father's Name:</label
+          >
+          <div class="col-sm-8">
+            <input
+              type="text"
+              name="fathersName"
+              id="fathersName"
+              placeholder="Father's Name"
+              required
+              class="form-control"
+            />
+            <span id="fathersNameInvalid" class="invalid-feedback"
+              >Invalid format</span
+            >
+          </div>
+        </div>
+
+        <!-- Photograph -->
+        <div class="form-group row">
+          <label for="photograph" class="col-sm-4 control-label"
+            >Upload your photograph:</label
+          >
+          <div class="col-sm-8">
+            <input
+              type="file"
+              name="photograph"
+              id="photograph"
+              placeholder="Photograph"
+              required
+              class="form-control"
+            />
+            <span id="photographInvalid" class="invalid-feedback"
+              >Image must be larger than 2MB</span
+            >
+          </div>
+        </div>
+
+        <!-- Signature -->
+        <div class="form-group row">
+          <label for="signature" class="col-sm-4 control-label"
+            >Upload your signature:</label
+          >
+          <div class="col-sm-8">
+            <input
+              type="file"
+              name="signature"
+              id="signature"
+              placeholder="Signature"
+              required
+              class="form-control"
+            />
+            <span id="signatureInvalid" class="invalid-feedback"
+              >Image must be larger than 2MB</span
+            >
+          </div>
+        </div>
+
+        <!-- Language Preference -->
+        <!-- Language Preference -->
+        <div class="form-group row">
+          <label for="languagePreference" class="col-sm-4 control-label"
+            >Language Preference:</label
+          >
+          <div class="col-sm-8">
+            <input
+              type="text"
+              name="languagePreference"
+              id="languagePreference"
+              placeholder="Enter language preference"
+              required
+              class="form-control"
+            />
+            <span id="languagePreferenceInvalid" class="invalid-feedback"
+              >Invalid format: Must contain only letters and whitespace</span
+            >
+          </div>
+        </div>
+
+        <!-- Consent Checkbox -->
+        <div class="form-group row">
+          <div class="col-sm-offset-4 col-sm-8">
+            <div class="checkbox">
+              <label>
+                <input type="checkbox" name="consent" id="consent" required /> I
+                consent to the processing of my data for the purpose of Aadhaar
+                application.
+              </label>
+            </div>
+            <span id="consentInvalid" class="invalid-feedback"
+              >Required before submitting</span
+            >
+          </div>
+        </div>
+
+        <!-- Submit button -->
+        <div class="form-group row">
+          <div class="col-sm-offset-4 col-sm-8">
+            <input type="submit" value="Submit" class="btn btn-success" />
+          </div>
+        </div>
+      </form>
+      <div class="mssg bg-danger">
+        <span id="check"></span>
+      </div>
+    </div>
+  </body>
+</html>
+
+
+
+
+
+data.ejs
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Welcome</title>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js">
+	</script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+	<link rel="stylesheet" href="./css/main.css">
+</head>
+<body>
+	<div class="col-md-4 col-md-offset-4">
+		<div>
+			<p>Profile Detail</p>
+		</div>
+		<div>
+			<center>
+				<table class="table table-hover text-center">
+					<tr><td>Name </td><td><%= name %></td></tr>
+					<tr><td>Email </td><td><%= email %></td></tr>
+				</table>
+			</center>
+		</div>
+		<div class="abc">
+			<a href="/logout">Logout</a>
+		</div>
+	</div>
+</body>
+</html>
+
+forget.ejs
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Forget Password</title>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js">
+	</script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+	<link rel="stylesheet" href="./css/main.css">
+
+	<script type="text/javascript">
+		$(document).ready(function(){
+
+			$( "#form2" ).submit(function(event) {
+
+				event.preventDefault();
+
+				$.ajax({
+					type: 'POST',
+					url: '/forgetpass',
+					data: $('#form2').serialize(),
+					dataType: "json",
+					success: function(response){
+						//alert("a");
+						//console.log(response.Success);
+						$('#form2')[0].reset();
+						//alert("abc");
+						document.getElementById("check").innerHTML=response.Success;
+
+						setTimeout(function(){
+							document.getElementById("check").innerHTML="";
+						},3000);
+						if (response.Success=="Password changed!") {
+							document.getElementById("aa").click();
+						};
+					},
+					error: function() {
+					}
+				})
+			});
+
+		});
+	</script>
+</head>
+<body>
+
+		<div class="col-md-4 col-md-offset-4">
+			<div>
+				<p>Change Password</p>
+			</div>
+			<div class="form-group">
+				<form id="form2" method="post">
+					<input type="text" name="email" placeholder="E-mail" required="" class="form-control"><br/>
+					<input type="password" name="password" placeholder="Password" required="" class="form-control"><br/>
+					<input type="password" name="passwordConf" placeholder="Confirm Password" required="" class="form-control"><br/>
+					<input type="submit" value="Change" class="btn btn-success">
+				</form>
+			</div>
+			<div  class="mssg bg-danger">
+				<span id="check"></span>
+				</div>
+				<div id="LangTable"><a href="/profile" id="aa"></a>
+				</div>
+				<div><span>Login?</span><a href="/login">Click here</a></div>
+			</div>
+			<div id="LangTable"><a href="/login" id="aa"></a>
+			</div>
+		</div>
+
+</body>
+</html>
+
+
+index.ejs
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Registration</title>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js">
+	</script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+	<link rel="stylesheet" href="./css/main.css">
+
+
+	<script type="text/javascript">
+		$(document).ready(function(){
+
+			$( "#form1" ).submit(function(event) {
+				event.preventDefault();
+
+				$.ajax({
+					type: 'POST',
+					url: '/',
+					data: $('#form1').serialize(),
+					dataType: "json",
+					success: function(response){
+						//alert("a");
+						//console.log(response.Success);
+						$('#form1')[0].reset();
+
+						document.getElementById("check").innerHTML=response.Success;
+         					//ADD THIS CODE
+         					setTimeout(function(){
+         						document.getElementById("check").innerHTML="";
+         					},3000);
+         					if (response.Success=="You are regestered,You can login now.") {
+         						document.getElementById("aa").click();
+         					};
+         				},
+         				error: function() {
+         				}
+         			})
+			});
+		});
+	</script>
+</head>
+<body>
+
+	<div class="col-md-4 col-md-offset-4">
+		<div>
+			<p>Register Now
+			</p>
+		</div>
+		<div class="form-group">
+			<form id="form1" method="post">
+				<input type="email" name="email" placeholder="E-mail" required="" class="form-control"><br/>
+				<input type="text" name="username" placeholder="Username" required="" class="form-control"><br/>
+				<input type="password" name="password" placeholder="Password" required="" class="form-control"><br/>
+				<input type="password" name="passwordConf" placeholder="Confirm Password" required="" class="form-control"><br/>
+				<input type="submit" value="Register" class="btn btn-success">
+			</form>
+		</div>
+		
+		<div class="mssg bg-danger">
+			<span id="check"></span>
+		</div>
+		<div>
+			<span>Already Registered! <a href="/login">Login</a></span>
+		</div>
+		<div id="LangTable"><a href="/login" id="aa"></a>
+		</div>
+	</div>
+</body>
+</html>
+
+
+aadhar.ejs
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Aadhar Options</title>
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+    />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="./css/main.css" />
+  </head>
+  <body>
+    <div class="col-md-4 col-md-offset-4">
+      <div>
+        <h2>Welcome, <%= name %>!</h2>
+      </div>
+      <div>
+        <p>Please select an option:</p>
+        <ul>
+          <li><a href="/apply-for-aadhar">Apply for Aadhar</a></li>
+          <li><a href="/check-for-aadhar">Check for Aadhar</a></li>
+        </ul>
+      </div>
+    </div>
+  </body>
+</html>
+
+
+login.ejs
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Login</title>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js">
+	</script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+	<link rel="stylesheet" href="./css/main.css">
+
+	<script type="text/javascript">
+		$(document).ready(function(){
+
+			$( "#form" ).submit(function(event) {
+				event.preventDefault();
+
+				$.ajax({
+					type: 'POST',
+					url: '/login',
+					data: $('#form').serialize(),
+					dataType: "json",
+					success: function(response){
+						//alert("a");
+						//console.log(response.Success);
+						$('#form')[0].reset();
+
+						document.getElementById("check").innerHTML=response.Success;
+         					//ADD THIS CODE
+         					setTimeout(function(){
+         						document.getElementById("check").innerHTML="";
+         					},3000);
+         					if (response.Success=="Success!") {
+         						document.getElementById("aa").click();
+         					};
+         				},
+         				error: function() {
+         				}
+         			})
+			});
+
+		});
+	</script>
+</head>
+<body>
+	<div class="col-md-4 col-md-offset-4">
+		<div>
+			<p>Login</p>
+		</div>
+		<div class="form-group">
+			<form id="form" method="post" >
+				<input type="text" name="email" placeholder="E-mail" required="" class="form-control"><br/>
+				<input type="password" name="password" placeholder="Password" required="" class="form-control"><br/>
+				<input type="submit" value="Login" class="btn btn-success">
+			</form>
+		</div>
+		<div class="mssg bg-danger">
+			<span id="check" ></span>
+		</div>
+		<div id="LangTable"><a href="/profile" id="aa"></a>
+		</div>
+		<div><span>Do you forgot password?</span><a href="/forgetpass">Click here</a>
+		<div><span>Create a new Account?</span><a href="/">Register here</a>
+
+		</div>
+		
+	</div>
+</body>
+</html>
+
+server.js
+var express = require('express');
+var env = require('dotenv').config();
+var ejs = require('ejs');
+var path = require('path');
+var app = express();
+var bodyParser = require('body-parser');
+var mongoose = require('mongoose');
+var session = require('express-session');
+var MongoStore = require('connect-mongo')(session);
+
+mongoose.connect('mongodb://localhost:27017/registrationForm', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+}, (err) => {
+  if (!err) {
+    console.log('MongoDB Connection Succeeded.');
+  } else {
+    console.log('Error in DB connection : ' + err);
+  }
+});
+
+var db = mongoose.connection;
+db.on('error', console.error.bind(console, 'connection error:'));
+db.once('open', function () {
+});
+
+app.use(session({
+  secret: 'work hard',
+  resave: true,
+  saveUninitialized: false,
+  store: new MongoStore({
+    mongooseConnection: db
+  })
+}));
+
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'ejs');
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
+
+app.use(express.static(__dirname + '/views'));
+
+var index = require('./routes/index');
+app.use('/', index);
+
+// catch 404 and forward to error handler
+app.use(function (req, res, next) {
+  var err = new Error('File Not Found');
+  err.status = 404;
+  next(err);
+});
+
+// error handler
+// define as the last app.use callback
+app.use(function (err, req, res, next) {
+  res.status(err.status || 500);
+  res.send(err.message);
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, function () {
+  console.log('Server is started on http://127.0.0.1:'+PORT);
+});
