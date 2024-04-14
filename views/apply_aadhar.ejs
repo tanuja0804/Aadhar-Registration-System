@@ -72,14 +72,14 @@
 
         // Address validation
         var address = document.getElementById("address");
-        var addressValue = address.value.trim();
-        if (!/^[A-Za-z\s0-9]+$/.test(addressValue)) {
-          valid = false;
-          address.value = "";
-          document.getElementById("addressInvalid").style.display = "block";
-        } else {
-          document.getElementById("addressInvalid").style.display = "none";
-        }
+        // var addressValue = address.value.trim();
+        // if (!/^[A-Za-z\s0-9]+$/.test(addressValue)) {
+        //   valid = false;
+        //   address.value = "";
+        //   document.getElementById("addressInvalid").style.display = "block";
+        // } else {
+        //   document.getElementById("addressInvalid").style.display = "none";
+        // }
 
         // Email validation
         var email = document.getElementById("email");
@@ -178,13 +178,28 @@
       document.addEventListener("DOMContentLoaded", function () {
         document
           .getElementById("aadharForm")
-          .addEventListener("submit", function (event) {
+          .addEventListener("submit", async function (event) {
             if (!validateForm()) {
-              // Prevent form submission if form is invalid
               event.preventDefault();
+              const form = document.getElementById("aadharForm");
+              const formData = new FormData(form);
+              const response = await fetch("/apply-for-aadhaar", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "multipart/form-data",
+
+                },
+                body: formData,
+              });
+              const data = await response.json();
+              if (data.error) {
+                alert(data.error);
+              } else {
+                alert(data.message);
+              }
             }
-          });
       });
+    });
     </script>
   </head>
 
@@ -197,6 +212,7 @@
         id="aadharForm"
         method="post"
         action="/apply-for-aadhaar"
+        enctype='multipart/form-data'
         novalidate
       >
         <!-- First Name -->
@@ -374,7 +390,7 @@
           <div class="col-sm-8">
             <input
               type="file"
-              name="photograph"
+              name="photo"
               id="photograph"
               accept="image/*"
               required
@@ -387,6 +403,23 @@
         </div>
 
         <!-- Signature -->
+        <div class="form-group row">
+          <label for="password" class="col-sm-4 control-label"
+            >Password:</label>
+          <div class="col-sm-8">
+            <input
+              type="password"
+              name="password"
+              id="password"
+              placeholder="Password"
+              required
+              class="form-control"
+            />
+            <span id="passwordInvalid" class="invalid-feedback"
+              >Invalid password format</span
+            >
+          </div>
+        </div>
         <div class="form-group row">
           <label for="signature" class="col-sm-4 control-label"
             >Signature:</label

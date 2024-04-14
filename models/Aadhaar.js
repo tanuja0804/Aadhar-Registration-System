@@ -7,8 +7,8 @@ const aadhaarSchema = new mongoose.Schema({
         type: Number,
         required: true,
         unique: true,
-        min: 1000000,
-        max: 9999999,
+        min: 100000000,
+        max: 999999999,
     },
     firstName: {
         type: String,
@@ -37,29 +37,29 @@ const aadhaarSchema = new mongoose.Schema({
         unique: true,
         validate: [validator.isEmail, 'Please provide a valid email address'], // Validate email format
     },
-    contact: {
+    contactDetails: {
         type: String,
         required: true,
         unique: true,
         validate: [validator.isMobilePhone, 'Please provide a valid contact number'], // Validate phone number
     },
-    fatherName: {
+    fathersName: {
         type: String,
         required: true,
     },
-    motherName: {
+    mothersName: {
         type: String,
         required: true,
     },
     photoURL: {
         type: String,
         required: true,
-        validate: [validator.isURL, 'Please provide a valid URL'], // Validate URL format
+        //validate: [validator.isURL, 'Please provide a valid URL'], // Validate URL format (cannot use since we use multer to store images locally(disk storage) and not on cloud)-> we can use firebase for this instead.
     },
     signatureURL: {
         type: String,
         required: true,
-        validate: [validator.isURL, 'Please provide a valid URL'], // Validate URL format
+        //validate: [validator.isURL, 'Please provide a valid URL'], // Validate URL format
     },
     password: {
         type: String,
